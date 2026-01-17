@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Almarai, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
+import LayoutClient from "./layout-client";
 
 const almarai = Almarai({
   variable: "--font-almarai",
@@ -27,9 +28,9 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <body
-        className={`${almarai.variable} ${ibmPlexArabic.variable} antialiased`}
+        className={`${almarai.variable} ${ibmPlexArabic.variable} antialiased flex flex-col min-h-screen`}
       >
-        {children}
+        <LayoutClient>{children}</LayoutClient>
       </body>
     </html>
   );

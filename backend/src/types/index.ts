@@ -1,14 +1,11 @@
 /**
- * Standard API response wrapper
+ * Re-export shared API types
  */
-export interface ApiResponse<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
+export type { ApiResponse, PaginatedResponse, ApiErrorDetails } from '../../../shared/types/index.js';
 
 /**
  * Custom API Error class with status code
+ * Backend-specific error class for operational errors
  */
 export class ApiError extends Error {
   public readonly statusCode: number;

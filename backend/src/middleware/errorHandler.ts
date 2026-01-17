@@ -44,14 +44,24 @@ export function globalErrorHandler(
       method: req.method,
     });
   } else if (!isOperational) {
-    // Log unexpected errors in production
+    // Log unexpected errors in production (server-side only)
     console.error('Unexpected error:', err.message);
+  }
+
+  // Sanitize error messages in production to prevent information leakage
+  let safeMessage = message;
+  if (env.NODE_ENV === 'production' && !isOperational) {
+    // For non-operational errors in production, use generic message
+    safeMessage = 'An error occurred. Please try again later.';
+  } else if (env.NODE_ENV === 'production' && statusCode >= 500) {
+    // For server errors in production, use generic message
+    safeMessage = 'An internal error occurred. Please try again later.';
   }
 
   // Build response
   const response: ApiResponse = {
     success: false,
-    error: message,
+    error: safeMessage,
   };
 
   // Include stack trace in development mode only

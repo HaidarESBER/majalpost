@@ -1,5 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { ApiResponse } from '../types/index.js';
+import authRoutes from './auth.js';
+import categoryRoutes from './categories.js';
+import tagRoutes from './tags.js';
+import searchRoutes from './search.js';
+import mediaRoutes from './media.js';
+import articleRoutes from './articles.js';
+import commentRoutes from './comments.js';
+import contributorApplicationRoutes from './contributor-applications.js';
+import userRoutes from './users.js';
 
 const router = Router();
 
@@ -7,12 +16,16 @@ const router = Router();
  * Health check endpoint
  * GET /api/health
  */
-router.get('/health', (req: Request, res: Response) => {
-  const response: ApiResponse<{ status: string; timestamp: string }> = {
+router.get('/health', async (req: Request, res: Response) => {
+  const mongoose = await import('mongoose');
+  const dbStatus = mongoose.default.connection.readyState === 1 ? 'connected' : 'disconnected';
+  
+  const response: ApiResponse<{ status: string; timestamp: string; database: string }> = {
     success: true,
     data: {
-      status: 'ok',
+      status: dbStatus === 'connected' ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
+      database: dbStatus,
     },
   };
   res.json(response);
@@ -32,5 +45,59 @@ router.get('/', (req: Request, res: Response) => {
   };
   res.json(response);
 });
+
+/**
+ * Auth routes
+ * /api/auth/*
+ */
+router.use('/auth', authRoutes);
+
+/**
+ * Category routes
+ * /api/categories/*
+ */
+router.use('/categories', categoryRoutes);
+
+/**
+ * Tag routes
+ * /api/tags/*
+ */
+router.use('/tags', tagRoutes);
+
+/**
+ * Search routes
+ * /api/search/*
+ */
+router.use('/search', searchRoutes);
+
+/**
+ * Media routes
+ * /api/media/*
+ */
+router.use('/media', mediaRoutes);
+
+/**
+ * Article routes
+ * /api/articles/*
+ */
+router.use('/articles', articleRoutes);
+
+/**
+ * Comment routes
+ * /api/comments/*
+ */
+router.use('/comments', commentRoutes);
+
+/**
+ * Contributor application routes
+ * /api/contributor-applications/*
+ */
+router.use('/contributor-applications', contributorApplicationRoutes);
+
+/**
+ * User routes
+ * /api/users/*
+ */
+router.use('/users', userRoutes);
 
 export default router;

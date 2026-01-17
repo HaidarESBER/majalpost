@@ -1,0 +1,8 @@
+{
+  "name": "@majalpost/shared",
+  "version": "1.0.0",
+  "description": "Shared types for Majal Post frontend and backend",
+  "main": "types/index.ts",
+  "types": "types/index.ts",
+  "private": true
+}
