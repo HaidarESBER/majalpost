@@ -1,6 +1,15 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../config/env.js';
 
+// Validate Cloudinary credentials
+function validateCloudinaryConfig(): void {
+  if (!env.CLOUDINARY_CLOUD_NAME || !env.CLOUDINARY_API_KEY || !env.CLOUDINARY_API_SECRET) {
+    throw new Error(
+      'Cloudinary credentials are not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables.'
+    );
+  }
+}
+
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: env.CLOUDINARY_CLOUD_NAME,
@@ -32,6 +41,9 @@ export async function uploadToCloudinary(
   format: string;
   bytes: number;
 }> {
+  // Validate credentials before attempting upload
+  validateCloudinaryConfig();
+
   return new Promise((resolve, reject) => {
     const uploadOptions = {
       folder,

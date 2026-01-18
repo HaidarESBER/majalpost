@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { getImageUrl } from '@/lib/imageUtils';
 
 interface Category {
   _id: string;
@@ -243,8 +244,6 @@ export default function ArticlePage() {
     );
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 md:py-12">
@@ -266,7 +265,7 @@ export default function ArticlePage() {
           {article.featuredImage && (
             <div className="mx-6 md:mx-8 mb-8 rounded-xl overflow-hidden shadow-xl">
               <img
-                src={`${apiBaseUrl}${article.featuredImage}`}
+                src={getImageUrl(article.featuredImage)}
                 alt={article.title}
                 className="w-full h-auto max-h-[500px] object-cover"
               />

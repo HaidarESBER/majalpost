@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { getImageUrl } from '@/lib/imageUtils';
 
 interface Article {
   _id: string;
@@ -130,7 +131,7 @@ export default function Home() {
                     {article.featuredImage && (
                       <div className="aspect-video overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 relative">
                         <img
-                          src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000'}${article.featuredImage}`}
+                          src={getImageUrl(article.featuredImage)}
                           alt={article.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />

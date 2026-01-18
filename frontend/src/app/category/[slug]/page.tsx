@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { getImageUrl } from '@/lib/imageUtils';
 
 interface Category {
   _id: string;
@@ -127,8 +128,6 @@ export default function CategoryPage() {
     );
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 md:py-12">
@@ -184,7 +183,7 @@ export default function CategoryPage() {
                         <div className="md:w-56 flex-shrink-0">
                           <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 shadow-md">
                             <img
-                              src={`${apiBaseUrl}${article.featuredImage}`}
+                              src={getImageUrl(article.featuredImage)}
                               alt={article.title}
                               className="w-full h-full object-cover"
                             />

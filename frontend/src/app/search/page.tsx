@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import type { SearchResult } from '@shared/types';
 import SearchBar from '@/components/SearchBar';
+import { getImageUrl } from '@/lib/imageUtils';
 
 function SearchPageContent() {
   const searchParams = useSearchParams();
@@ -156,7 +157,7 @@ function SearchPageContent() {
                         <Link href={`/article/${article.slug}`} className="block">
                           <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
                             <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000'}${article.featuredImage}`}
+                              src={getImageUrl(article.featuredImage)}
                               alt={article.title}
                               className="w-full h-full object-cover"
                             />

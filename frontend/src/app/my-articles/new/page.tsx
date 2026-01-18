@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { API_URL } from '@/lib/config';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { getImageUrl } from '@/lib/imageUtils';
 
 interface Category {
   _id: string;
@@ -111,8 +112,7 @@ export default function NewArticlePage() {
 
       if (result.success && result.data) {
         setFormData((prev) => ({ ...prev, featuredImage: result.data.fileUrl }));
-        const fullUrl = `${API_URL.replace('/api', '')}${result.data.fileUrl}`;
-        setFeaturedImagePreview(fullUrl);
+        setFeaturedImagePreview(getImageUrl(result.data.fileUrl));
       } else {
         alert(result.error || 'Failed to upload image');
         setFeaturedImagePreview(null);

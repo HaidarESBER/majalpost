@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { API_URL } from '@/lib/config';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { getImageUrl } from '@/lib/imageUtils';
 
 interface Category {
   _id: string;
@@ -89,8 +90,7 @@ export default function EditArticlePage() {
           isPublished: response.data.isPublished,
         });
         if (response.data.featuredImage) {
-          const fullUrl = `${API_URL.replace('/api', '')}${response.data.featuredImage}`;
-          setFeaturedImagePreview(fullUrl);
+          setFeaturedImagePreview(getImageUrl(response.data.featuredImage));
         }
       } else {
         setError(response.error || 'Article not found');
@@ -161,16 +161,15 @@ export default function EditArticlePage() {
 
       if (result.success && result.data) {
         setFormData((prev) => ({ ...prev, featuredImage: result.data.fileUrl }));
-        const fullUrl = `${API_URL.replace('/api', '')}${result.data.fileUrl}`;
-        setFeaturedImagePreview(fullUrl);
+        setFeaturedImagePreview(getImageUrl(result.data.fileUrl));
       } else {
         alert(result.error || 'Failed to upload image');
-        setFeaturedImagePreview(article?.featuredImage ? `${API_URL.replace('/api', '')}${article.featuredImage}` : null);
+        setFeaturedImagePreview(article?.featuredImage ? getImageUrl(article.featuredImage) : null);
       }
     } catch (err) {
       alert('Error uploading image');
       console.error(err);
-      setFeaturedImagePreview(article?.featuredImage ? `${API_URL.replace('/api', '')}${article.featuredImage}` : null);
+      setFeaturedImagePreview(article?.featuredImage ? getImageUrl(article.featuredImage) : null);
     }
   };
 
