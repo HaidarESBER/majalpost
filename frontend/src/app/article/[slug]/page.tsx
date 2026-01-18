@@ -301,7 +301,7 @@ export default function ArticlePage() {
               <div className="flex items-center gap-2 text-gray-600">
                 {article.author.profilePicture ? (
                   <img
-                    src={`${apiBaseUrl}${article.author.profilePicture}`}
+                    src={getImageUrl(article.author.profilePicture)}
                     alt={article.author.name}
                     className="w-8 h-8 rounded-full object-cover"
                   />
@@ -465,7 +465,7 @@ export default function ArticlePage() {
                     <div className="flex items-start gap-4">
                       {comment.author.profilePicture ? (
                         <img
-                          src={`${apiBaseUrl}${comment.author.profilePicture}`}
+                          src={getImageUrl(comment.author.profilePicture)}
                           alt={comment.author.name}
                           className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                         />

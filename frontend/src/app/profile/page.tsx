@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { API_URL } from '@/lib/config';
+import { getImageUrl } from '@/lib/imageUtils';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -44,8 +45,7 @@ export default function ProfilePage() {
         setEmail(response.data.email);
         setProfilePicture(response.data.profilePicture);
         if (response.data.profilePicture) {
-          const apiBaseUrl = API_URL.replace('/api', '');
-          setProfilePicturePreview(`${apiBaseUrl}${response.data.profilePicture}`);
+          setProfilePicturePreview(getImageUrl(response.data.profilePicture));
         }
       } else {
         setError(response.error || 'Failed to load profile');
@@ -94,26 +94,15 @@ export default function ProfilePage() {
 
       if (result.success && result.data) {
         setProfilePicture(result.data.fileUrl);
-        const apiBaseUrl = API_URL.replace('/api', '');
-        setProfilePicturePreview(`${apiBaseUrl}${result.data.fileUrl}`);
+        setProfilePicturePreview(getImageUrl(result.data.fileUrl));
       } else {
         alert(result.error || 'Failed to upload image');
-        if (profilePicture) {
-          const apiBaseUrl = API_URL.replace('/api', '');
-          setProfilePicturePreview(`${apiBaseUrl}${profilePicture}`);
-        } else {
-          setProfilePicturePreview(null);
-        }
+        setProfilePicturePreview(profilePicture ? getImageUrl(profilePicture) : null);
       }
     } catch (err) {
       alert('Error uploading image');
       console.error(err);
-      if (profilePicture) {
-        const apiBaseUrl = API_URL.replace('/api', '');
-        setProfilePicturePreview(`${apiBaseUrl}${profilePicture}`);
-      } else {
-        setProfilePicturePreview(null);
-      }
+      setProfilePicturePreview(profilePicture ? getImageUrl(profilePicture) : null);
     }
   };
 

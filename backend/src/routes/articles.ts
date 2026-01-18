@@ -13,10 +13,18 @@ const router = Router();
  * Generate slug from title
  */
 function generateSlug(title: string): string {
-  return title
+  let slug = title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+  
+  // If slug is empty (e.g., Arabic-only title), generate a fallback
+  if (!slug || slug.trim() === '') {
+    // Generate a slug from timestamp as fallback
+    slug = `article-${Date.now()}`;
+  }
+  
+  return slug;
 }
 
 /**
