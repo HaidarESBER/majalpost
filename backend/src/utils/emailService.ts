@@ -66,15 +66,21 @@ async function sendEmail(to: string, subject: string, html: string, text?: strin
       return;
     }
 
+    // Use Resend's test domain for free tier (allows sending to any recipient)
+    // To use custom domain, verify it at resend.com/domains and update SMTP_FROM_EMAIL
+    const fromEmail = env.SMTP_FROM_EMAIL.includes('@resend.dev') 
+      ? env.SMTP_FROM_EMAIL 
+      : 'onboarding@resend.dev';
+    
     console.log('Sending email via Resend...', { 
       to, 
       subject, 
-      from: env.SMTP_FROM_EMAIL,
+      from: fromEmail,
     });
     
     const resendClient = getResendClient();
     const { data, error } = await resendClient.emails.send({
-      from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
+      from: `"${env.SMTP_FROM_NAME}" <${fromEmail}>`,
       to: [to],
       subject,
       html,
