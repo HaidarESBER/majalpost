@@ -58,11 +58,9 @@ router.post('/register', authLimiter, async (req: Request, res: Response): Promi
 
     // Send welcome email (don't await to avoid blocking the response)
     sendWelcomeEmail(user.email, user.name).catch((error) => {
-      // Log email errors but don't fail registration
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Failed to send welcome email:', error);
-      }
+      // Log email errors but don't fail registration (log in production too for debugging)
+      // eslint-disable-next-line no-console
+      console.error('Failed to send welcome email:', error);
     });
 
     // Generate JWT token
