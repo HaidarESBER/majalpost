@@ -31,8 +31,19 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    // Validate password requirements: at least 8 characters, at least one letter, at least one number
+    if (password.length < 8) {
+      setError('كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+      return;
+    }
+
+    if (!/[A-Za-z]/.test(password)) {
+      setError('كلمة المرور يجب أن تحتوي على حرف واحد على الأقل');
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError('كلمة المرور يجب أن تحتوي على رقم واحد على الأقل');
       return;
     }
 
@@ -131,7 +142,20 @@ export default function RegisterPage() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="••••••••"
               />
-              <p className="text-xs text-gray-500 mt-1">يجب أن تكون 6 أحرف على الأقل</p>
+              <div className="mt-1 space-y-1">
+                <p className="text-xs text-gray-600 font-medium">متطلبات كلمة المرور:</p>
+                <ul className="text-xs text-gray-500 space-y-0.5 list-disc list-inside">
+                  <li className={password.length >= 8 ? 'text-green-600' : ''}>
+                    {password.length >= 8 ? '✓ ' : '• '}8 أحرف على الأقل
+                  </li>
+                  <li className={/[A-Za-z]/.test(password) ? 'text-green-600' : ''}>
+                    {/[A-Za-z]/.test(password) ? '✓ ' : '• '}حرف واحد على الأقل
+                  </li>
+                  <li className={/[0-9]/.test(password) ? 'text-green-600' : ''}>
+                    {/[0-9]/.test(password) ? '✓ ' : '• '}رقم واحد على الأقل
+                  </li>
+                </ul>
+              </div>
             </div>
 
             <div>
