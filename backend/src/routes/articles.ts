@@ -241,10 +241,20 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
       Article.countDocuments(filter),
     ]);
 
+    // Resolve featuredImage filenames to full URLs
+    const articlesWithResolvedImages = await Promise.all(
+      articles.map(async (article: any) => {
+        if (article.featuredImage) {
+          article.featuredImage = await resolveFeaturedImageUrl(article.featuredImage);
+        }
+        return article;
+      })
+    );
+
     const totalPages = Math.ceil(total / limit);
 
     const response: ApiResponse<{
-      items: typeof articles;
+      items: typeof articlesWithResolvedImages;
       pagination: {
         total: number;
         page: number;
@@ -254,7 +264,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     }> = {
       success: true,
       data: {
-        items: articles,
+        items: articlesWithResolvedImages,
         pagination: {
           total,
           page,
