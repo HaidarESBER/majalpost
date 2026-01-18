@@ -226,6 +226,28 @@ p {
   }
 }
 
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* Grid pattern background */
 .bg-grid-pattern {
   background-image: 
@@ -306,6 +328,14 @@ p {
 
 .animate-float-gentle {
   animation: floatGentle 4s ease-in-out infinite;
+}
+
+.animate-slide-out-left {
+  animation: slideOutLeft 0.5s ease-in-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.5s ease-in-out forwards;
 }
 
 /* Smooth transitions */

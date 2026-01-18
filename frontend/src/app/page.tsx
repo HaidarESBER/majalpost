@@ -34,6 +34,10 @@ interface ArticlesResponse {
 export default function Home() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(true);
+  const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -49,8 +53,37 @@ export default function Home() {
       }
     };
 
+    const fetchFeaturedArticles = async () => {
+      try {
+        const response = await api.get<Article[]>('/articles/public/featured?limit=10');
+        if (response.success && response.data) {
+          setFeaturedArticles(response.data);
+        }
+      } catch (err) {
+        console.error('Error fetching featured articles:', err);
+      } finally {
+        setLoadingFeatured(false);
+      }
+    };
+
     fetchArticles();
+    fetchFeaturedArticles();
   }, []);
+
+  // Auto-rotate featured articles
+  useEffect(() => {
+    if (featuredArticles.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentFeaturedIndex((prev) => (prev + 1) % featuredArticles.length);
+        setIsTransitioning(false);
+      }, 500); // Half of transition duration
+    }, 5000); // Change every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [featuredArticles.length]);
 
   return (
     <div className="min-h-screen">
@@ -96,6 +129,103 @@ export default function Home() {
 
       <div className="container mx-auto px-4 py-12 md:py-16">
         <div className="w-full max-w-7xl mx-auto space-y-12 md:space-y-16">
+
+        {/* Featured Articles */}
+        {featuredArticles.length > 0 && (
+          <div className="space-y-8 animate-fade-in-up" style={{ animationDelay: '0.25s' }}>
+            <div className="text-center">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">مقالات مميزة</h2>
+              <p className="text-gray-600">اكتشف أهم المقالات التي نرشحها لك</p>
+            </div>
+            
+            <div className="relative h-[500px] md:h-[600px] rounded-2xl overflow-hidden shadow-2xl">
+              {featuredArticles.map((article, index) => {
+                const isActive = index === currentFeaturedIndex;
+                const isNext = index === (currentFeaturedIndex + 1) % featuredArticles.length;
+                
+                return (
+                  <Link
+                    key={article._id}
+                    href={`/article/${article.slug}`}
+                    className={`absolute inset-0 transition-all duration-500 ${
+                      isActive 
+                        ? 'opacity-100 z-10' 
+                        : isNext && isTransitioning
+                        ? 'opacity-0 z-0'
+                        : 'opacity-0 z-0 pointer-events-none'
+                    }`}
+                  >
+                    <div className="relative w-full h-full">
+                      {article.featuredImage ? (
+                        <img
+                          src={getImageUrl(article.featuredImage)}
+                          alt={article.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error('Image failed to load:', getImageUrl(article.featuredImage));
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-purple-500 to-blue-600"></div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                      <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-12 text-white">
+                        <div
+                          className="inline-block px-4 py-2 text-sm font-semibold rounded-full text-white mb-4 shadow-lg"
+                          style={{ backgroundColor: article.category.color }}
+                        >
+                          {article.category.name}
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-bold mb-4 leading-tight">
+                          {article.title}
+                        </h2>
+                        <p className="text-lg md:text-xl text-gray-200 mb-6 line-clamp-3">
+                          {article.excerpt}
+                        </p>
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm text-gray-300">
+                            {article.publishedAt && new Date(article.publishedAt).toLocaleDateString('ar-LB', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </span>
+                          <span className="text-purple-300 font-medium">اقرأ المزيد →</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+              
+              {/* Navigation dots */}
+              {featuredArticles.length > 1 && (
+                <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex gap-2">
+                  {featuredArticles.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsTransitioning(true);
+                        setTimeout(() => {
+                          setCurrentFeaturedIndex(index);
+                          setIsTransitioning(false);
+                        }, 500);
+                      }}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                        index === currentFeaturedIndex
+                          ? 'bg-white w-8'
+                          : 'bg-white/50 hover:bg-white/75'
+                      }`}
+                      aria-label={`Go to featured article ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Latest Articles */}
         <div className="space-y-8 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>

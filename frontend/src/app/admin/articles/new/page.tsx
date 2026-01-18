@@ -35,6 +35,7 @@ export default function NewArticlePage() {
     tags: [] as string[],
     featuredImage: '',
     isPublished: false,
+    isFeatured: false,
   });
   const [featuredImagePreview, setFeaturedImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -128,6 +129,7 @@ export default function NewArticlePage() {
         tags: formData.tags,
         featuredImage: formData.featuredImage || undefined,
         isPublished: formData.isPublished,
+        isFeatured: formData.isFeatured,
       });
 
       if (response.success) {
@@ -339,8 +341,8 @@ export default function NewArticlePage() {
             )}
           </div>
 
-          {/* Publish Status */}
-          <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+          {/* Publish Status and Featured */}
+          <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
             <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -349,6 +351,15 @@ export default function NewArticlePage() {
                 className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
               />
               <span className="text-sm font-medium text-gray-700">Publish immediately</span>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.isFeatured}
+                onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              />
+              <span className="text-sm font-medium text-gray-700">Feature on homepage</span>
             </label>
           </div>
 

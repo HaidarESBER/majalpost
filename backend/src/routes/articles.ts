@@ -163,6 +163,50 @@ router.get('/public', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
+ * Get featured articles (public)
+ * GET /api/articles/public/featured
+ * Query params: ?limit=6
+ */
+router.get('/public/featured', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 6;
+
+    const filter: Record<string, unknown> = {
+      isPublished: true,
+      status: ArticleStatus.PUBLISHED,
+      isFeatured: true,
+    };
+
+    const articles = await Article.find(filter)
+      .populate('category', 'name nameEn slug color')
+      .populate('tags', 'name slug')
+      .populate('author', 'name')
+      .sort({ publishedAt: -1, createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    // Resolve featuredImage filenames to full URLs
+    const articlesWithResolvedImages = await Promise.all(
+      articles.map(async (article: any) => {
+        if (article.featuredImage) {
+          article.featuredImage = await resolveFeaturedImageUrl(article.featuredImage);
+        }
+        return article;
+      })
+    );
+
+    const response: ApiResponse<typeof articlesWithResolvedImages> = {
+      success: true,
+      data: articlesWithResolvedImages,
+    };
+
+    res.json(response);
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
  * Get single published article by slug (public)
  * GET /api/articles/public/:slug
  */
@@ -341,7 +385,7 @@ router.get('/:slug', async (req: AuthRequest, res: Response): Promise<void> => {
  */
 router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { title, excerpt, content, category, tags, featuredImage, isPublished, publishedAt } = req.body;
+    const { title, excerpt, content, category, tags, featuredImage, isPublished, isFeatured, publishedAt } = req.body;
 
     // Validation
     if (!title || !excerpt || !content || !category) {
@@ -419,6 +463,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
       featuredImage: featuredImage || undefined,
       status: articleStatus,
       isPublished: shouldPublish,
+      isFeatured: isFeatured === true,
       publishedAt: shouldPublish && publishedAt ? new Date(publishedAt) : undefined,
     });
 
@@ -471,7 +516,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
 router.put('/:slug', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { slug } = req.params;
-    const { title, excerpt, content, category, tags, featuredImage, isPublished, publishedAt } = req.body;
+    const { title, excerpt, content, category, tags, featuredImage, isPublished, isFeatured, publishedAt } = req.body;
 
     const article = await Article.findOne({ slug });
 
@@ -526,6 +571,7 @@ router.put('/:slug', async (req: AuthRequest, res: Response): Promise<void> => {
       }
     }
     if (featuredImage !== undefined) article.featuredImage = featuredImage;
+    if (isFeatured !== undefined) article.isFeatured = isFeatured === true;
     if (isPublished !== undefined) {
       const userRole = req.user?.role;
       

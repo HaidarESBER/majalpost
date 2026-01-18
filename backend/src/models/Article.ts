@@ -23,6 +23,7 @@ export interface IArticle extends Document {
   author: mongoose.Types.ObjectId;
   publishedAt?: Date;
   isPublished: boolean;
+  isFeatured: boolean;
   status: ArticleStatus;
   views: number;
   likes: mongoose.Types.ObjectId[];
@@ -83,6 +84,10 @@ const articleSchema = new Schema<IArticle>(
       type: Boolean,
       default: false,
     },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
     status: {
       type: String,
       enum: Object.values(ArticleStatus),
@@ -110,6 +115,7 @@ articleSchema.index({ slug: 1 });
 articleSchema.index({ category: 1 });
 articleSchema.index({ author: 1 });
 articleSchema.index({ isPublished: 1, publishedAt: -1 });
+articleSchema.index({ isFeatured: 1, publishedAt: -1 });
 articleSchema.index({ createdAt: -1 });
 
 // Text search index for title, excerpt, and content
