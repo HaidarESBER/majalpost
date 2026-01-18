@@ -51,9 +51,9 @@ function SearchPageContent() {
             setResults(response.data.results);
           } else {
             // Subsequent pages - append results
-            setResults((prev) => [...prev, ...response.data.results]);
+            setResults((prev) => [...prev, ...(response.data?.results || [])]);
           }
-          setPagination(response.data.pagination);
+          setPagination(response.data?.pagination || { total: 0, page: 1, limit: 20, totalPages: 0, hasMore: false });
         } else {
           setError(response.error || 'فشل البحث');
           if (currentOffset === 0) {

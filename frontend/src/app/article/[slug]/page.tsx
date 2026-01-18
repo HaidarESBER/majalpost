@@ -53,6 +53,11 @@ interface Article {
   likes: string[];
 }
 
+interface LikeResponse {
+  liked: boolean;
+  likesCount: number;
+}
+
 export default function ArticlePage() {
   const params = useParams();
   const slug = params.slug as string;
@@ -127,7 +132,7 @@ export default function ArticlePage() {
 
     setLiking(true);
     try {
-      const response = await api.post(`/articles/${slug}/like`, {});
+      const response = await api.post<LikeResponse>(`/articles/${slug}/like`, {});
       if (response.success && response.data) {
         setIsLiked(response.data.liked);
         setLikesCount(response.data.likesCount);
