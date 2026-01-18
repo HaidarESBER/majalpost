@@ -1,32 +1,39 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { env } from '../config/env.js';
 
-/**
- * Email transporter configuration
- */
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST,
-  port: env.SMTP_PORT,
-  secure: env.SMTP_PORT === 465, // true for 465, false for other ports
-  auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASS,
-  },
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 10000, // 10 seconds
-  socketTimeout: 10000, // 10 seconds
-  // Add TLS options for better compatibility
-  tls: {
-    rejectUnauthorized: false, // Allow self-signed certificates (for Railway compatibility)
-  },
-});
+// Initialize Resend client
+const resend = new Resend(env.RESEND_API_KEY);
+
+// SMTP configuration (commented out - using Resend instead)
+// import nodemailer from 'nodemailer';
+// const transporter = nodemailer.createTransport({
+//   host: env.SMTP_HOST,
+//   port: env.SMTP_PORT,
+//   secure: env.SMTP_PORT === 465, // true for 465, false for other ports
+//   auth: {
+//     user: env.SMTP_USER,
+//     pass: env.SMTP_PASS,
+//   },
+//   connectionTimeout: 10000, // 10 seconds
+//   greetingTimeout: 10000, // 10 seconds
+//   socketTimeout: 10000, // 10 seconds
+//   // Add TLS options for better compatibility
+//   tls: {
+//     rejectUnauthorized: false, // Allow self-signed certificates (for Railway compatibility)
+//   },
+// });
 
 /**
- * Verify email transporter configuration
+ * Verify email configuration (Resend)
  */
 export async function verifyEmailConfig(): Promise<boolean> {
   try {
-    await transporter.verify();
+    // Resend API key validation - if key is invalid, it will fail on first send
+    // For now, just check if key exists
+    if (!env.RESEND_API_KEY) {
+      console.error('Resend API key not configured');
+      return false;
+    }
     return true;
   } catch (error) {
     console.error('Email configuration error:', error);
@@ -35,42 +42,44 @@ export async function verifyEmailConfig(): Promise<boolean> {
 }
 
 /**
- * Send email helper function
+ * Send email helper function (using Resend)
  */
 async function sendEmail(to: string, subject: string, html: string, text?: string): Promise<void> {
   try {
-    // Skip sending emails in test environment or if SMTP is not configured
-    if (env.NODE_ENV === 'test' || !env.SMTP_USER || !env.SMTP_PASS) {
-      console.log('Email not sent (test mode or SMTP not configured):', { 
+    // Skip sending emails if Resend API key is not configured
+    if (!env.RESEND_API_KEY) {
+      console.log('Email not sent (Resend API key not configured):', { 
         to, 
-        subject, 
-        nodeEnv: env.NODE_ENV,
-        hasUser: !!env.SMTP_USER, 
-        hasPass: !!env.SMTP_PASS,
-        smtpHost: env.SMTP_HOST,
-        smtpPort: env.SMTP_PORT
+        subject,
+        hasApiKey: !!env.RESEND_API_KEY,
       });
       return;
     }
 
-    console.log('Sending email...', { 
+    console.log('Sending email via Resend...', { 
       to, 
       subject, 
       from: env.SMTP_FROM_EMAIL,
-      smtpHost: env.SMTP_HOST,
-      smtpPort: env.SMTP_PORT,
-      smtpUser: env.SMTP_USER.substring(0, 3) + '...' // Log partial email for debugging
     });
     
-    const info = await transporter.sendMail({
+    const { data, error } = await resend.emails.send({
       from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
-      to,
+      to: [to],
       subject,
-      text: text || html.replace(/<[^>]*>/g, ''), // Strip HTML for text version
       html,
+      text: text || html.replace(/<[^>]*>/g, ''), // Strip HTML for text version
     });
-    
-    console.log('Email sent successfully:', { messageId: info.messageId, to, subject });
+
+    if (error) {
+      console.error('Resend API error:', error);
+      throw new Error(`Resend API error: ${error.message}`);
+    }
+
+    console.log('Email sent successfully via Resend:', { 
+      id: data?.id, 
+      to, 
+      subject 
+    });
   } catch (error) {
     console.error('Error sending email:', error);
     if (error instanceof Error) {
@@ -327,4 +336,3 @@ export async function sendArticleRejectionEmail(
     getEmailTemplate(content)
   );
 }
-
