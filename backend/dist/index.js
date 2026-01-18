@@ -63,6 +63,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Apply general rate limiting to all API routes
 app.use('/api', generalLimiter);
+// Root route - redirect to API info
+app.get('/', (req, res) => {
+    res.redirect('/api');
+});
 // API routes
 app.use('/api', routes);
 // 404 handler for unknown routes

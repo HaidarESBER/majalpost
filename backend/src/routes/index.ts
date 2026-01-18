@@ -13,6 +13,22 @@ import userRoutes from './users.js';
 const router = Router();
 
 /**
+ * Root API endpoint - basic info
+ * GET /api
+ */
+router.get('/', async (req: Request, res: Response) => {
+  const response: ApiResponse<{ message: string; version: string; endpoints: string[] }> = {
+    success: true,
+    data: {
+      message: 'Majal Post API',
+      version: '1.0.0',
+      endpoints: ['/health', '/auth', '/articles', '/categories', '/tags', '/comments', '/media', '/users', '/search'],
+    },
+  };
+  res.json(response);
+});
+
+/**
  * Health check endpoint
  * GET /api/health
  */
