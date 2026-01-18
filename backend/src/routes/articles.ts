@@ -31,9 +31,10 @@ async function resolveFeaturedImageUrl(featuredImage: string | undefined | null)
     // Extract filename without extension to match Cloudinary public_id
     // Cloudinary public_id format: majalpost/images/{filename-without-ext}
     const filenameWithoutExt = featuredImage.replace(/\.(png|jpg|jpeg|gif|webp)$/i, '');
+    const extension = featuredImage.match(/\.(png|jpg|jpeg|gif|webp)$/i)?.[1] || 'png';
     
-    // Try to find by cloudinaryPublicId pattern (ends with the filename)
-    // This is more reliable than filename field since filename stores original upload name
+    // Try multiple lookup strategies
+    // Strategy 1: Find by cloudinaryPublicId pattern (ends with the filename)
     const mediaByPublicId = await Media.findOne({
       cloudinaryPublicId: new RegExp(`${filenameWithoutExt}$`),
     }).lean();
@@ -41,10 +42,27 @@ async function resolveFeaturedImageUrl(featuredImage: string | undefined | null)
       return (mediaByPublicId as any).url;
     }
     
-    // Fallback: Try to find media by filename (original upload name)
+    // Strategy 2: Try exact match on cloudinaryPublicId (majalpost/images/{filename})
+    const exactPublicId = `majalpost/images/${filenameWithoutExt}`;
+    const mediaByExactPublicId = await Media.findOne({
+      cloudinaryPublicId: exactPublicId,
+    }).lean();
+    if (mediaByExactPublicId && (mediaByExactPublicId as any).url) {
+      return (mediaByExactPublicId as any).url;
+    }
+    
+    // Strategy 3: Try to find media by filename (original upload name)
     const media = await Media.findOne({ filename: featuredImage }).lean();
     if (media && (media as any).url) {
       return (media as any).url;
+    }
+    
+    // Strategy 4: Try partial filename match in cloudinaryPublicId
+    const mediaByPartialMatch = await Media.findOne({
+      cloudinaryPublicId: new RegExp(filenameWithoutExt),
+    }).lean();
+    if (mediaByPartialMatch && (mediaByPartialMatch as any).url) {
+      return (mediaByPartialMatch as any).url;
     }
   }
 
