@@ -1,16 +1,14 @@
 import { Router, Response } from 'express';
-import path from 'path';
-import fs from 'fs/promises';
+import mongoose from 'mongoose';
 import { Media } from '../models/Media.js';
 import { ApiResponse } from '../types/index.js';
 import { ApiError, HttpStatus } from '../types/index.js';
-import { env } from '../config/env.js';
 import { uploadImage } from '../middleware/upload.js';
-import { generateThumbnail, validateImage, getImageDimensions } from '../utils/imageProcessor.js';
+import { validateImage, getImageDimensions } from '../utils/imageProcessor.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { uploadLimiter } from '../middleware/rateLimit.js';
 import { validateObjectId } from '../utils/validation.js';
-import { validateUploadPath } from '../utils/pathSecurity.js';
+import { uploadToCloudinary, getThumbnailUrl, deleteFromCloudinary } from '../utils/cloudinary.js';
 
 const router = Router();
 
@@ -50,8 +48,8 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<v
 
     const mediaWithUrls = media.map((item) => ({
       ...item,
-      fileUrl: `/api/media/${item._id}/file`,
-      thumbnailUrl: `/api/media/${item._id}/thumbnail`,
+      fileUrl: (item as any).url || `/api/media/${item._id}/file`,
+      thumbnailUrl: (item as any).thumbnailUrl || `/api/media/${item._id}/thumbnail`,
     }));
 
     const response: ApiResponse<{
@@ -94,45 +92,51 @@ router.post('/upload', authenticate, uploadLimiter, uploadImage, async (req: Aut
     }
 
     const file = req.file;
-    const fileBuffer = await fs.readFile(file.path);
 
-    // Validate image
-    const validation = await validateImage(fileBuffer, file.mimetype);
+    // Validate image (file.buffer is available when using memory storage)
+    if (!file.buffer) {
+      throw new ApiError('File buffer is missing', HttpStatus.BAD_REQUEST);
+    }
+
+    const validation = await validateImage(file.buffer, file.mimetype);
     if (!validation.valid) {
-      // Clean up uploaded file
-      await fs.unlink(file.path).catch(() => {});
       throw new ApiError(validation.error || 'Invalid image file', HttpStatus.BAD_REQUEST);
     }
 
     // Get image dimensions
-    const dimensions = await getImageDimensions(fileBuffer);
+    const dimensions = await getImageDimensions(file.buffer);
 
-    // Generate thumbnail path
-    const thumbnailFilename = `${path.basename(file.filename, path.extname(file.filename))}.jpg`;
-    const thumbnailPath = path.join(env.THUMBNAIL_DIR, thumbnailFilename);
+    // Upload original image to Cloudinary
+    const uploadResult = await uploadToCloudinary(file.buffer, 'majalpost/images');
 
-    // Generate thumbnail
-    await generateThumbnail(fileBuffer, thumbnailPath);
+    // Generate thumbnail URL (Cloudinary generates it on-the-fly)
+    const thumbnailUrl = getThumbnailUrl(uploadResult.public_id, {
+      width: 400,
+      height: 400,
+      quality: 80,
+    });
 
     // Create media document
     const media = new Media({
       filename: file.originalname,
-      originalPath: file.path,
-      thumbnailPath,
+      cloudinaryPublicId: uploadResult.public_id,
+      url: uploadResult.url,
+      thumbnailUrl,
       mimeType: file.mimetype,
-      size: file.size,
-      width: dimensions.width,
-      height: dimensions.height,
+      size: uploadResult.bytes,
+      width: uploadResult.width,
+      height: uploadResult.height,
+      uploadedBy: req.user?.userId ? new mongoose.Types.ObjectId(req.user.userId) : undefined,
     });
 
     await media.save();
 
-    // Return media document with URLs (not paths)
+    // Return media document with URLs
     const mediaObject = media.toObject() as unknown as Record<string, unknown>;
     const responseData = {
       ...mediaObject,
-      fileUrl: `/api/media/${media._id}/file`,
-      thumbnailUrl: `/api/media/${media._id}/thumbnail`,
+      fileUrl: media.url,
+      thumbnailUrl: media.thumbnailUrl,
     };
     const response: ApiResponse<typeof responseData> = {
       success: true,
@@ -142,15 +146,10 @@ router.post('/upload', authenticate, uploadLimiter, uploadImage, async (req: Aut
 
     res.status(HttpStatus.CREATED).json(response);
   } catch (error) {
-    // Clean up uploaded file on error
-    if (req.file?.path) {
-      await fs.unlink(req.file.path).catch(() => {});
-    }
-
     if (error instanceof ApiError) {
       throw error;
     }
-    throw new ApiError('Failed to upload image', HttpStatus.INTERNAL_SERVER_ERROR);
+    throw new ApiError(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -159,7 +158,7 @@ router.post('/upload', authenticate, uploadLimiter, uploadImage, async (req: Aut
  */
 
 /**
- * Serve original file (public)
+ * Serve original file (public) - Redirects to Cloudinary URL
  * GET /api/media/:id/file
  * IMPORTANT: This route must come before /:id to ensure proper matching
  */
@@ -177,20 +176,14 @@ router.get('/:id/file', async (req: AuthRequest, res: Response): Promise<void> =
       throw new ApiError('Media not found', HttpStatus.NOT_FOUND);
     }
 
-    // Validate and resolve file path
-    const validatedPath = validateUploadPath(media.originalPath);
-
-    // Check if file exists
-    try {
-      await fs.access(validatedPath);
-    } catch {
-      throw new ApiError('File not found on server', HttpStatus.NOT_FOUND);
+    // Use Cloudinary URL if available, otherwise fallback to legacy path
+    if (media.url) {
+      res.redirect(302, media.url);
+      return;
     }
 
-    // Serve file with appropriate headers
-    res.setHeader('Content-Type', media.mimeType);
-    res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
-    res.sendFile(validatedPath);
+    // Legacy support - should not happen in new uploads
+    throw new ApiError('File URL not available', HttpStatus.NOT_FOUND);
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -200,7 +193,7 @@ router.get('/:id/file', async (req: AuthRequest, res: Response): Promise<void> =
 });
 
 /**
- * Serve thumbnail (public)
+ * Serve thumbnail (public) - Redirects to Cloudinary thumbnail URL
  * GET /api/media/:id/thumbnail
  * IMPORTANT: This route must come before /:id to ensure proper matching
  */
@@ -218,36 +211,21 @@ router.get('/:id/thumbnail', async (req: AuthRequest, res: Response): Promise<vo
       throw new ApiError('Media not found', HttpStatus.NOT_FOUND);
     }
 
-    // Check if thumbnail exists, fallback to original if not
-    let filePath = media.thumbnailPath || media.originalPath;
-    let fileExists = false;
-
-    if (media.thumbnailPath) {
-      try {
-        const validatedThumbnailPath = validateUploadPath(media.thumbnailPath);
-        await fs.access(validatedThumbnailPath);
-        filePath = validatedThumbnailPath;
-        fileExists = true;
-      } catch {
-        // Thumbnail doesn't exist, fallback to original
-        filePath = media.originalPath;
-      }
+    // Use Cloudinary thumbnail URL if available
+    if (media.thumbnailUrl) {
+      res.redirect(302, media.thumbnailUrl);
+      return;
     }
 
-    // Validate and resolve file path
-    const validatedPath = validateUploadPath(filePath);
-
-    // Check if file exists
-    try {
-      await fs.access(validatedPath);
-    } catch {
-      throw new ApiError('File not found on server', HttpStatus.NOT_FOUND);
+    // Fallback: generate thumbnail URL from public_id if available
+    if (media.cloudinaryPublicId) {
+      const thumbnailUrl = getThumbnailUrl(media.cloudinaryPublicId);
+      res.redirect(302, thumbnailUrl);
+      return;
     }
 
-    // Serve file with appropriate headers
-    res.setHeader('Content-Type', fileExists ? 'image/jpeg' : media.mimeType);
-    res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
-    res.sendFile(validatedPath);
+    // Legacy support - should not happen in new uploads
+    throw new ApiError('Thumbnail URL not available', HttpStatus.NOT_FOUND);
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -280,8 +258,9 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
       thumbnailUrl: string;
     };
 
-    mediaObject.fileUrl = `/api/media/${mediaId}/file`;
-    mediaObject.thumbnailUrl = `/api/media/${mediaId}/thumbnail`;
+    // Use Cloudinary URLs if available, otherwise use API endpoints
+    mediaObject.fileUrl = (media as any).url || `/api/media/${mediaId}/file`;
+    mediaObject.thumbnailUrl = (media as any).thumbnailUrl || `/api/media/${mediaId}/thumbnail`;
 
     const response: ApiResponse<typeof mediaObject> = {
       success: true,

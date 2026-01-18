@@ -1,5 +1,4 @@
 import multer from 'multer';
-import path from 'path';
 import { env } from '../config/env.js';
 import { ApiError } from '../types/index.js';
 import { HttpStatus } from '../types/index.js';
@@ -15,20 +14,9 @@ const ALLOWED_MIME_TYPES = [
 ];
 
 /**
- * Multer storage configuration
+ * Multer storage configuration - use memory storage for Cloudinary
  */
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Store files in uploads/original directory
-    cb(null, path.join(env.UPLOAD_DIR, 'original'));
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename: timestamp-randomstring.extension
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname);
-    cb(null, `${uniqueSuffix}${ext}`);
-  },
-});
+const storage = multer.memoryStorage();
 
 /**
  * File filter for image uploads

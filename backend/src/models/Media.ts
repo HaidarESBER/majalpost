@@ -5,8 +5,11 @@ import mongoose, { Schema, Document } from 'mongoose';
  */
 export interface IMedia extends Document {
   filename: string;
-  originalPath: string;
-  thumbnailPath?: string;
+  originalPath?: string; // Legacy field, kept for backwards compatibility
+  thumbnailPath?: string; // Legacy field, kept for backwards compatibility
+  cloudinaryPublicId?: string; // Cloudinary public_id
+  url?: string; // Cloudinary URL for original image
+  thumbnailUrl?: string; // Cloudinary URL for thumbnail
   mimeType: string;
   size: number;
   width?: number;
@@ -28,11 +31,23 @@ const mediaSchema = new Schema<IMedia>(
     },
     originalPath: {
       type: String,
-      required: [true, 'Original path is required'],
+      default: undefined, // Legacy field, optional now
     },
     thumbnailPath: {
       type: String,
+      default: undefined, // Legacy field, optional now
+    },
+    cloudinaryPublicId: {
+      type: String,
       default: undefined,
+    },
+    url: {
+      type: String,
+      default: undefined, // Cloudinary URL for original
+    },
+    thumbnailUrl: {
+      type: String,
+      default: undefined, // Cloudinary URL for thumbnail
     },
     mimeType: {
       type: String,
