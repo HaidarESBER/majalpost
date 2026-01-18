@@ -9,13 +9,16 @@ export function getImageUrl(imagePath: string | undefined | null): string {
     return '';
   }
 
+  // Trim whitespace
+  const trimmedPath = imagePath.trim();
+
   // If it's already a full URL (Cloudinary or external), return as-is
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath;
+  if (trimmedPath.startsWith('http://') || trimmedPath.startsWith('https://')) {
+    return trimmedPath;
   }
 
   // Otherwise, prepend the API base URL (without /api)
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
-  return `${apiBaseUrl}${imagePath}`;
+  return `${apiBaseUrl}${trimmedPath}`;
 }
 
