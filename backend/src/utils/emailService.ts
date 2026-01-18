@@ -1,8 +1,18 @@
 import { Resend } from 'resend';
 import { env } from '../config/env.js';
 
-// Initialize Resend client
-const resend = new Resend(env.RESEND_API_KEY);
+// Initialize Resend client lazily (only when API key is available)
+let resend: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resend) {
+    if (!env.RESEND_API_KEY) {
+      throw new Error('Resend API key is not configured. Set RESEND_API_KEY environment variable.');
+    }
+    resend = new Resend(env.RESEND_API_KEY);
+  }
+  return resend;
+}
 
 // SMTP configuration (commented out - using Resend instead)
 // import nodemailer from 'nodemailer';
@@ -62,7 +72,8 @@ async function sendEmail(to: string, subject: string, html: string, text?: strin
       from: env.SMTP_FROM_EMAIL,
     });
     
-    const { data, error } = await resend.emails.send({
+    const resendClient = getResendClient();
+    const { data, error } = await resendClient.emails.send({
       from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
       to: [to],
       subject,
