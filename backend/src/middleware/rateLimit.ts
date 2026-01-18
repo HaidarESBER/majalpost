@@ -11,6 +11,9 @@ export const generalLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  validate: {
+    trustProxy: false, // Disable strict trust proxy validation for Railway
+  },
 });
 
 /**
@@ -24,6 +27,9 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests
+  validate: {
+    trustProxy: false, // Disable strict trust proxy validation for Railway
+  },
 });
 
 /**
@@ -36,5 +42,8 @@ export const uploadLimiter = rateLimit({
   message: 'Too many uploads, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  validate: {
+    trustProxy: false, // Disable strict trust proxy validation for Railway
+  },
 });
 
