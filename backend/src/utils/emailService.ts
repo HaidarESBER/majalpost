@@ -1,49 +1,32 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
 
-// Initialize Resend client lazily (only when API key is available)
-let resend: Resend | null = null;
-
-function getResendClient(): Resend {
-  if (!resend) {
-    if (!env.RESEND_API_KEY) {
-      throw new Error('Resend API key is not configured. Set RESEND_API_KEY environment variable.');
-    }
-    resend = new Resend(env.RESEND_API_KEY);
-  }
-  return resend;
-}
-
-// SMTP configuration (commented out - using Resend instead)
-// import nodemailer from 'nodemailer';
-// const transporter = nodemailer.createTransport({
-//   host: env.SMTP_HOST,
-//   port: env.SMTP_PORT,
-//   secure: env.SMTP_PORT === 465, // true for 465, false for other ports
-//   auth: {
-//     user: env.SMTP_USER,
-//     pass: env.SMTP_PASS,
-//   },
-//   connectionTimeout: 10000, // 10 seconds
-//   greetingTimeout: 10000, // 10 seconds
-//   socketTimeout: 10000, // 10 seconds
-//   // Add TLS options for better compatibility
-//   tls: {
-//     rejectUnauthorized: false, // Allow self-signed certificates (for Railway compatibility)
-//   },
-// });
+/**
+ * Email transporter configuration
+ */
+const transporter = nodemailer.createTransport({
+  host: env.SMTP_HOST,
+  port: env.SMTP_PORT,
+  secure: env.SMTP_PORT === 465, // true for 465, false for other ports
+  auth: {
+    user: env.SMTP_USER,
+    pass: env.SMTP_PASS,
+  },
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000, // 10 seconds
+  socketTimeout: 10000, // 10 seconds
+  // Add TLS options for better compatibility
+  tls: {
+    rejectUnauthorized: false, // Allow self-signed certificates (for Railway compatibility)
+  },
+});
 
 /**
- * Verify email configuration (Resend)
+ * Verify email transporter configuration
  */
 export async function verifyEmailConfig(): Promise<boolean> {
   try {
-    // Resend API key validation - if key is invalid, it will fail on first send
-    // For now, just check if key exists
-    if (!env.RESEND_API_KEY) {
-      console.error('Resend API key not configured');
-      return false;
-    }
+    await transporter.verify();
     return true;
   } catch (error) {
     console.error('Email configuration error:', error);
@@ -52,51 +35,42 @@ export async function verifyEmailConfig(): Promise<boolean> {
 }
 
 /**
- * Send email helper function (using Resend)
+ * Send email helper function
  */
 async function sendEmail(to: string, subject: string, html: string, text?: string): Promise<void> {
   try {
-    // Skip sending emails if Resend API key is not configured
-    if (!env.RESEND_API_KEY) {
-      console.log('Email not sent (Resend API key not configured):', { 
+    // Skip sending emails in test environment or if SMTP is not configured
+    if (env.NODE_ENV === 'test' || !env.SMTP_USER || !env.SMTP_PASS) {
+      console.log('Email not sent (test mode or SMTP not configured):', { 
         to, 
-        subject,
-        hasApiKey: !!env.RESEND_API_KEY,
+        subject, 
+        nodeEnv: env.NODE_ENV,
+        hasUser: !!env.SMTP_USER, 
+        hasPass: !!env.SMTP_PASS,
+        smtpHost: env.SMTP_HOST,
+        smtpPort: env.SMTP_PORT
       });
       return;
     }
 
-    // Use Resend's test domain for free tier (allows sending to any recipient)
-    // To use custom domain, verify it at resend.com/domains and update SMTP_FROM_EMAIL
-    const fromEmail = env.SMTP_FROM_EMAIL.includes('@resend.dev') 
-      ? env.SMTP_FROM_EMAIL 
-      : 'onboarding@resend.dev';
-    
-    console.log('Sending email via Resend...', { 
+    console.log('Sending email...', { 
       to, 
       subject, 
-      from: fromEmail,
+      from: env.SMTP_FROM_EMAIL,
+      smtpHost: env.SMTP_HOST,
+      smtpPort: env.SMTP_PORT,
+      smtpUser: env.SMTP_USER.substring(0, 3) + '...' // Log partial email for debugging
     });
     
-    const resendClient = getResendClient();
-    const { data, error } = await resendClient.emails.send({
-      from: `"${env.SMTP_FROM_NAME}" <${fromEmail}>`,
-      to: [to],
+    const info = await transporter.sendMail({
+      from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
+      to,
       subject,
-      html,
       text: text || html.replace(/<[^>]*>/g, ''), // Strip HTML for text version
+      html,
     });
-
-    if (error) {
-      console.error('Resend API error:', error);
-      throw new Error(`Resend API error: ${error.message}`);
-    }
-
-    console.log('Email sent successfully via Resend:', { 
-      id: data?.id, 
-      to, 
-      subject 
-    });
+    
+    console.log('Email sent successfully:', { messageId: info.messageId, to, subject });
   } catch (error) {
     console.error('Error sending email:', error);
     if (error instanceof Error) {

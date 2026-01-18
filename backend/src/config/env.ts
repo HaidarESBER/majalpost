@@ -20,7 +20,6 @@ interface EnvironmentVariables {
   SMTP_PASS: string;
   SMTP_FROM_EMAIL: string;
   SMTP_FROM_NAME: string;
-  RESEND_API_KEY: string;
   CLOUDINARY_CLOUD_NAME: string;
   CLOUDINARY_API_KEY: string;
   CLOUDINARY_API_SECRET: string;
@@ -81,7 +80,6 @@ export const env: EnvironmentVariables = {
   SMTP_PASS: getEnvVar('SMTP_PASS', false) || '',
   SMTP_FROM_EMAIL: getEnvVar('SMTP_FROM_EMAIL', false) || getEnvVar('SMTP_USER', false) || 'noreply@majalpost.com',
   SMTP_FROM_NAME: getEnvVar('SMTP_FROM_NAME', false) || 'مجال بوست',
-  RESEND_API_KEY: getEnvVar('RESEND_API_KEY', false) || '',
   CLOUDINARY_CLOUD_NAME: getEnvVar('CLOUDINARY_CLOUD_NAME', false) || '',
   CLOUDINARY_API_KEY: getEnvVar('CLOUDINARY_API_KEY', false) || '',
   CLOUDINARY_API_SECRET: getEnvVar('CLOUDINARY_API_SECRET', false) || '',
