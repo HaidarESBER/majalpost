@@ -1,6 +1,7 @@
 import { connectDB, disconnectDB } from '../config/db.js';
 import { Article, ArticleStatus } from '../models/Article.js';
 import { Category } from '../models/Category.js';
+import { Tag } from '../models/Tag.js';
 import { User, UserRole } from '../models/User.js';
 
 /**
