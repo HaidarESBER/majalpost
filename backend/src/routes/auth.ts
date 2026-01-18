@@ -98,7 +98,13 @@ router.post('/register', authLimiter, async (req: Request, res: Response): Promi
     if (error instanceof ApiError) {
       throw error;
     }
-    throw new ApiError('Failed to register user', HttpStatus.INTERNAL_SERVER_ERROR);
+    // Log the actual error for debugging (even in production to see Railway logs)
+    console.error('Registration error:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    throw new ApiError(`Failed to register user: ${error instanceof Error ? error.message : 'Unknown error'}`, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 });
 
