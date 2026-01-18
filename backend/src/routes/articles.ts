@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { Article, ArticleStatus } from '../models/Article.js';
+import { Media } from '../models/Media.js';
 import { ApiResponse } from '../types/index.js';
 import { ApiError, HttpStatus } from '../types/index.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
@@ -10,21 +11,51 @@ import { sanitizeHtml, sanitizeText } from '../utils/sanitize.js';
 const router = Router();
 
 /**
+ * Resolve featuredImage filename to full URL
+ * If featuredImage is just a filename (e.g., "image.png"), try to find the media document
+ * and return the full Cloudinary URL
+ */
+async function resolveFeaturedImageUrl(featuredImage: string | undefined | null): Promise<string | undefined> {
+  if (!featuredImage) {
+    return undefined;
+  }
+
+  // If it's already a full URL, return as-is
+  if (featuredImage.startsWith('http://') || featuredImage.startsWith('https://')) {
+    return featuredImage;
+  }
+
+  // If it looks like just a filename (no path separators, has extension)
+  const filenamePattern = /^[^/\\]+\.(png|jpg|jpeg|gif|webp)$/i;
+  if (filenamePattern.test(featuredImage)) {
+    // Try to find media by filename
+    const media = await Media.findOne({ filename: featuredImage }).lean();
+    if (media && (media as any).url) {
+      return (media as any).url;
+    }
+    
+    // Try to find by cloudinaryPublicId pattern (remove extension and match)
+    const filenameWithoutExt = featuredImage.replace(/\.(png|jpg|jpeg|gif|webp)$/i, '');
+    const mediaByPublicId = await Media.findOne({
+      cloudinaryPublicId: new RegExp(`${filenameWithoutExt}$`),
+    }).lean();
+    if (mediaByPublicId && (mediaByPublicId as any).url) {
+      return (mediaByPublicId as any).url;
+    }
+  }
+
+  // Return as-is (might be a relative path like /api/media/...)
+  return featuredImage;
+}
+
+/**
  * Generate slug from title
  */
 function generateSlug(title: string): string {
-  let slug = title
+  return title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  
-  // If slug is empty (e.g., Arabic-only title), generate a fallback
-  if (!slug || slug.trim() === '') {
-    // Generate a slug from timestamp as fallback
-    slug = `article-${Date.now()}`;
-  }
-  
-  return slug;
 }
 
 /**
@@ -70,10 +101,20 @@ router.get('/public', async (req: Request, res: Response): Promise<void> => {
       Article.countDocuments(filter),
     ]);
 
+    // Resolve featuredImage filenames to full URLs
+    const articlesWithResolvedImages = await Promise.all(
+      articles.map(async (article: any) => {
+        if (article.featuredImage) {
+          article.featuredImage = await resolveFeaturedImageUrl(article.featuredImage);
+        }
+        return article;
+      })
+    );
+
     const totalPages = Math.ceil(total / limit);
 
     const response: ApiResponse<{
-      items: typeof articles;
+      items: typeof articlesWithResolvedImages;
       pagination: {
         total: number;
         page: number;
@@ -83,7 +124,7 @@ router.get('/public', async (req: Request, res: Response): Promise<void> => {
     }> = {
       success: true,
       data: {
-        items: articles,
+        items: articlesWithResolvedImages,
         pagination: {
           total,
           page,
@@ -122,9 +163,16 @@ router.get('/public/:slug', async (req: Request, res: Response): Promise<void> =
     await article.populate('author', 'name profilePicture');
     await article.populate('likes', 'name');
 
+    const articleObject = article.toObject() as unknown as Record<string, unknown>;
+    
+    // Resolve featuredImage filename to full URL if needed
+    if (articleObject.featuredImage && typeof articleObject.featuredImage === 'string') {
+      articleObject.featuredImage = await resolveFeaturedImageUrl(articleObject.featuredImage);
+    }
+
     const response: ApiResponse<Record<string, unknown>> = {
       success: true,
-      data: article.toObject() as unknown as Record<string, unknown>,
+      data: articleObject,
     };
 
     res.json(response);
@@ -275,7 +323,13 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
     }
 
     // Generate slug if not provided
-    const slug = generateSlug(title);
+    let slug = generateSlug(title);
+    
+    // If slug is empty (e.g., Arabic-only title), generate a fallback using article ID placeholder
+    // We'll use a timestamp-based slug as fallback since we don't have the article ID yet
+    if (!slug || slug.trim() === '') {
+      slug = `article-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    }
 
     // Check for duplicate slug
     const existingArticle = await Article.findOne({ slug });
@@ -408,7 +462,8 @@ router.put('/:slug', async (req: AuthRequest, res: Response): Promise<void> => {
       article.title = sanitizeText(title);
       // Regenerate slug if title changed
       const newSlug = generateSlug(title);
-      if (newSlug !== article.slug) {
+      // Only update slug if it's not empty and different from current slug
+      if (newSlug && newSlug.trim() !== '' && newSlug !== article.slug) {
         // Check if new slug exists
         const existingArticle = await Article.findOne({ slug: newSlug });
         if (existingArticle && existingArticle._id.toString() !== article._id.toString()) {
@@ -416,6 +471,7 @@ router.put('/:slug', async (req: AuthRequest, res: Response): Promise<void> => {
         }
         article.slug = newSlug;
       }
+      // If newSlug is empty (e.g., Arabic-only title), keep the existing slug
     }
     if (excerpt !== undefined) article.excerpt = sanitizeText(excerpt);
     if (content !== undefined) article.content = sanitizeHtml(content);
