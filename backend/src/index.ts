@@ -28,8 +28,9 @@ app.use(helmet({
   },
 }));
 
-// HTTPS enforcement in production
-if (env.NODE_ENV === 'production') {
+// HTTPS enforcement in production (disabled for Railway - Railway handles HTTPS)
+// Railway uses a reverse proxy that handles HTTPS, so we trust x-forwarded-proto
+if (env.NODE_ENV === 'production' && process.env.RAILWAY_ENVIRONMENT !== 'true') {
   app.use((req, res, next) => {
     // Check if request is over HTTPS or forwarded from HTTPS (e.g., behind proxy)
     if (req.header('x-forwarded-proto') !== 'https' && req.protocol !== 'https') {
