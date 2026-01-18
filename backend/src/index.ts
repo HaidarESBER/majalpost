@@ -11,6 +11,9 @@ import { generalLimiter } from './middleware/rateLimit.js';
 
 const app = express();
 
+// Trust proxy - Railway uses a reverse proxy, so we need to trust X-Forwarded-* headers
+app.set('trust proxy', true);
+
 // Security middleware - configure to allow images
 const frontendUrl = new URL(env.FRONTEND_URL.split(',')[0]); // Use first origin for CSP
 app.use(helmet({
