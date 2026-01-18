@@ -32,15 +32,12 @@ export function getImageUrl(imagePath: string | undefined | null): string {
     return trimmedPath;
   }
 
-  // If it's just a filename (ends with .png, .jpg, etc.) without a path, this is invalid
-  // Log a warning and return empty string to prevent broken image requests
-  if (/^[^/\\]+\.(png|jpg|jpeg|gif|webp)$/i.test(trimmedPath)) {
-    console.warn('Invalid image path (filename only):', trimmedPath);
-    return '';
-  }
-
   // Otherwise, prepend the API base URL (without /api)
+  // This handles relative paths like /api/media/... or just filenames (which shouldn't happen but we handle it)
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
-  return `${apiBaseUrl}${trimmedPath}`;
+  
+  // Ensure the path starts with / if it doesn't already
+  const path = trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
+  return `${apiBaseUrl}${path}`;
 }
 
