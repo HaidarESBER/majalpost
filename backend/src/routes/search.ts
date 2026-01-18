@@ -70,13 +70,39 @@ router.get('/', generalLimiter, async (req: Request, res: Response): Promise<voi
     // Get total count for pagination
     const total = await Article.countDocuments(searchQuery);
 
+    // Import Media model to resolve filenames
+    const { Media } = await import('../models/Media.js');
+    const resolveFeaturedImageUrl = async (featuredImage: string | undefined | null): Promise<string | undefined> => {
+      if (!featuredImage) {
+        return undefined;
+      }
+      if (featuredImage.startsWith('http://') || featuredImage.startsWith('https://')) {
+        return featuredImage;
+      }
+      const filenamePattern = /^[^/\\]+\.(png|jpg|jpeg|gif|webp)$/i;
+      if (filenamePattern.test(featuredImage)) {
+        const media = await Media.findOne({ filename: featuredImage }).lean();
+        if (media && (media as any).url) {
+          return (media as any).url;
+        }
+        const filenameWithoutExt = featuredImage.replace(/\.(png|jpg|jpeg|gif|webp)$/i, '');
+        const mediaByPublicId = await Media.findOne({
+          cloudinaryPublicId: new RegExp(`${filenameWithoutExt}$`),
+        }).lean();
+        if (mediaByPublicId && (mediaByPublicId as any).url) {
+          return (mediaByPublicId as any).url;
+        }
+      }
+      return featuredImage;
+    };
+
     // Transform results to match SearchResult interface
-    const results = articles.map((article: any) => ({
+    const results = await Promise.all(articles.map(async (article: any) => ({
       _id: article._id.toString(),
       title: article.title,
       excerpt: article.excerpt,
       slug: article.slug,
-      featuredImage: article.featuredImage,
+      featuredImage: await resolveFeaturedImageUrl(article.featuredImage),
       category: {
         _id: article.category?._id?.toString() || '',
         name: article.category?.name || '',
