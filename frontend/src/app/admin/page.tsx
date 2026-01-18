@@ -21,6 +21,8 @@ export default function AdminDashboard() {
     users: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [emailTestResult, setEmailTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -56,6 +58,38 @@ export default function AdminDashboard() {
 
     fetchStats();
   }, []);
+
+  const handleTestEmail = async () => {
+    setTestingEmail(true);
+    setEmailTestResult(null);
+    
+    try {
+      const response = await api.post<{ message: string; sentTo: string }>('/test/email', {
+        email: user?.email,
+        name: user?.name,
+      });
+      
+      if (response.success) {
+        setEmailTestResult({
+          success: true,
+          message: `Test email sent successfully to ${response.data?.sentTo || user?.email}`,
+        });
+      } else {
+        setEmailTestResult({
+          success: false,
+          message: response.error || 'Failed to send test email',
+        });
+      }
+    } catch (error) {
+      setEmailTestResult({
+        success: false,
+        message: 'Error sending test email. Check console for details.',
+      });
+      console.error('Test email error:', error);
+    } finally {
+      setTestingEmail(false);
+    }
+  };
 
   const statCards = [
     { 
@@ -193,6 +227,35 @@ export default function AdminDashboard() {
             <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
           </Link>
         ))}
+      </div>
+
+      {/* Test Email Section */}
+      <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+        <div className="flex items-center gap-2 mb-4">
+          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <h2 className="text-xl font-bold text-gray-900">اختبار البريد الإلكتروني</h2>
+        </div>
+        <p className="text-gray-600 mb-4">
+          اضغط على الزر أدناه لإرسال بريد تجريبي إلى عنوان بريدك الإلكتروني للتحقق من إعدادات SMTP.
+        </p>
+        <button
+          onClick={handleTestEmail}
+          disabled={testingEmail}
+          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {testingEmail ? 'جاري الإرسال...' : 'إرسال بريد تجريبي'}
+        </button>
+        {emailTestResult && (
+          <div className={`mt-4 p-4 rounded-lg ${
+            emailTestResult.success 
+              ? 'bg-green-50 border border-green-200 text-green-800' 
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}>
+            {emailTestResult.message}
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}

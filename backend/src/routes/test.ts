@@ -16,7 +16,7 @@ router.post('/email', authenticate, requireAdminOrEditor, async (req: AuthReques
   try {
     const { email, name } = req.body;
     const testEmail = email || req.user?.email || 'test@example.com';
-    const testName = name || req.user?.name || 'Test User';
+    const testName = name || 'Test User';
 
     if (!testEmail || !testName) {
       throw new ApiError('Email and name are required', HttpStatus.BAD_REQUEST);

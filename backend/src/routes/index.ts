@@ -9,6 +9,7 @@ import articleRoutes from './articles.js';
 import commentRoutes from './comments.js';
 import contributorApplicationRoutes from './contributor-applications.js';
 import userRoutes from './users.js';
+import testRoutes from './test.js';
 
 const router = Router();
 
@@ -115,5 +116,11 @@ router.use('/contributor-applications', contributorApplicationRoutes);
  * /api/users/*
  */
 router.use('/users', userRoutes);
+
+/**
+ * Test routes (admin/editor only)
+ * /api/test/*
+ */
+router.use('/test', testRoutes);
 
 export default router;
