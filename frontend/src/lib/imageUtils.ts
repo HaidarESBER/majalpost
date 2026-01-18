@@ -14,21 +14,27 @@ export function getImageUrl(imagePath: string | undefined | null): string {
 
   // Check if URL was incorrectly double-prefixed (contains API URL + Cloudinary URL)
   // Pattern: https://majalpost-production.up.railway.apphttps://res.cloudinary.com/...
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
-  if (trimmedPath.startsWith(apiBaseUrl) && trimmedPath.includes('https://res.cloudinary.com')) {
-    // Extract the Cloudinary URL part (everything after the API URL)
-    const cloudinaryIndex = trimmedPath.indexOf('https://res.cloudinary.com');
-    if (cloudinaryIndex > 0) {
-      return trimmedPath.substring(cloudinaryIndex);
-    }
+  // Look for the Cloudinary URL pattern anywhere in the string
+  const cloudinaryPattern = 'https://res.cloudinary.com';
+  const cloudinaryIndex = trimmedPath.indexOf(cloudinaryPattern);
+  
+  if (cloudinaryIndex > 0) {
+    // URL appears to be double-prefixed, extract just the Cloudinary URL
+    return trimmedPath.substring(cloudinaryIndex);
+  }
+  
+  if (cloudinaryIndex === 0) {
+    // URL already starts with Cloudinary URL, return as-is
+    return trimmedPath;
   }
 
-  // If it's already a full URL (Cloudinary or external), return as-is
+  // If it's already a full URL (starts with http:// or https://), return as-is
   if (trimmedPath.startsWith('http://') || trimmedPath.startsWith('https://')) {
     return trimmedPath;
   }
 
   // Otherwise, prepend the API base URL (without /api)
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
   return `${apiBaseUrl}${trimmedPath}`;
 }
 
