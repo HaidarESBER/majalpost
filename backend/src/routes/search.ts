@@ -121,7 +121,7 @@ router.get('/', generalLimiter, async (req: Request, res: Response): Promise<voi
       publishedAt: article.publishedAt,
       createdAt: article.createdAt,
       score: article.score,
-    }));
+    })));
 
     const response: ApiResponse<{
       results: typeof results;
