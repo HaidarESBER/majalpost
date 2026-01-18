@@ -14,7 +14,6 @@ export function getImageUrl(imagePath: string | undefined | null): string {
 
   // Check if URL was incorrectly double-prefixed (contains API URL + Cloudinary URL)
   // Pattern: https://majalpost-production.up.railway.apphttps://res.cloudinary.com/...
-  // Look for the Cloudinary URL pattern anywhere in the string
   const cloudinaryPattern = 'https://res.cloudinary.com';
   const cloudinaryIndex = trimmedPath.indexOf(cloudinaryPattern);
   
@@ -31,6 +30,13 @@ export function getImageUrl(imagePath: string | undefined | null): string {
   // If it's already a full URL (starts with http:// or https://), return as-is
   if (trimmedPath.startsWith('http://') || trimmedPath.startsWith('https://')) {
     return trimmedPath;
+  }
+
+  // If it's just a filename (ends with .png, .jpg, etc.) without a path, this is invalid
+  // Log a warning and return empty string to prevent broken image requests
+  if (/^[^/\\]+\.(png|jpg|jpeg|gif|webp)$/i.test(trimmedPath)) {
+    console.warn('Invalid image path (filename only):', trimmedPath);
+    return '';
   }
 
   // Otherwise, prepend the API base URL (without /api)
