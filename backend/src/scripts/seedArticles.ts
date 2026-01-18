@@ -4,15 +4,12 @@ import { Category } from '../models/Category.js';
 import { User, UserRole } from '../models/User.js';
 
 /**
- * Generate a URL-friendly slug from a title
+ * Generate a URL-friendly slug from a title (English-only for URL compatibility)
  */
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\w\s-]/g, '') // Remove special characters except Arabic, numbers, spaces, hyphens
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+function generateSlug(title: string, categorySlug: string, index: number): string {
+  // Use category slug + article index for simplicity
+  // This ensures URL-friendly slugs (only lowercase letters, numbers, hyphens)
+  return `${categorySlug}-article-${index}`;
 }
 
 /**
@@ -474,14 +471,38 @@ async function seedArticles(): Promise<void> {
 
       console.log(`\nCreating articles for category: ${category.name} (${category.slug})`);
 
-      for (const articleData of articles) {
-        const slug = generateSlug(articleData.title);
+      for (let index = 0; index < articles.length; index++) {
+        const articleData = articles[index];
+        const slug = generateSlug(articleData.title, category.slug, index + 1);
 
         // Check if article already exists
         const existingArticle = await Article.findOne({ slug });
         if (existingArticle) {
           console.log(`  ⏭ Skipping existing article: ${articleData.title}`);
           continue;
+        }
+
+        // Handle tags - find or create them
+        let tagIds: any[] = [];
+        if (articleData.tags && articleData.tags.length > 0) {
+          tagIds = await Promise.all(
+            articleData.tags.map(async (tagName, tagIndex) => {
+              // Generate slug for tag - use a simple approach: tag name converted to URL-friendly format
+              // Since Arabic characters are not allowed, we'll use a hash-like approach or sequential ID
+              // But first check if tag with this name already exists
+              let tag = await Tag.findOne({ name: tagName });
+              if (!tag) {
+                // Generate a simple slug: use category + sequential number + tag index
+                // This ensures uniqueness while being URL-friendly
+                const tagSlug = `${category.slug}-tag-${index + 1}-${tagIndex + 1}`;
+                tag = await Tag.create({
+                  name: tagName,
+                  slug: tagSlug,
+                });
+              }
+              return tag._id;
+            })
+          );
         }
 
         // Create the article
@@ -491,13 +512,14 @@ async function seedArticles(): Promise<void> {
           content: articleData.content.trim(),
           slug,
           category: category._id,
+          tags: tagIds,
           author: adminUser._id,
           status: ArticleStatus.PUBLISHED,
           isPublished: true,
           publishedAt: new Date(),
         });
 
-        console.log(`  ✓ Created: ${articleData.title}`);
+        console.log(`  ✓ Created: ${articleData.title} (slug: ${slug})`);
         totalCreated++;
       }
     }
