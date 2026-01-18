@@ -28,19 +28,23 @@ async function resolveFeaturedImageUrl(featuredImage: string | undefined | null)
   // If it looks like just a filename (no path separators, has extension)
   const filenamePattern = /^[^/\\]+\.(png|jpg|jpeg|gif|webp)$/i;
   if (filenamePattern.test(featuredImage)) {
-    // Try to find media by filename
-    const media = await Media.findOne({ filename: featuredImage }).lean();
-    if (media && (media as any).url) {
-      return (media as any).url;
-    }
-    
-    // Try to find by cloudinaryPublicId pattern (remove extension and match)
+    // Extract filename without extension to match Cloudinary public_id
+    // Cloudinary public_id format: majalpost/images/{filename-without-ext}
     const filenameWithoutExt = featuredImage.replace(/\.(png|jpg|jpeg|gif|webp)$/i, '');
+    
+    // Try to find by cloudinaryPublicId pattern (ends with the filename)
+    // This is more reliable than filename field since filename stores original upload name
     const mediaByPublicId = await Media.findOne({
       cloudinaryPublicId: new RegExp(`${filenameWithoutExt}$`),
     }).lean();
     if (mediaByPublicId && (mediaByPublicId as any).url) {
       return (mediaByPublicId as any).url;
+    }
+    
+    // Fallback: Try to find media by filename (original upload name)
+    const media = await Media.findOne({ filename: featuredImage }).lean();
+    if (media && (media as any).url) {
+      return (media as any).url;
     }
   }
 

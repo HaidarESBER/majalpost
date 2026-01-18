@@ -81,16 +81,21 @@ router.get('/', generalLimiter, async (req: Request, res: Response): Promise<voi
       }
       const filenamePattern = /^[^/\\]+\.(png|jpg|jpeg|gif|webp)$/i;
       if (filenamePattern.test(featuredImage)) {
-        const media = await Media.findOne({ filename: featuredImage }).lean();
-        if (media && (media as any).url) {
-          return (media as any).url;
-        }
+        // Extract filename without extension to match Cloudinary public_id
         const filenameWithoutExt = featuredImage.replace(/\.(png|jpg|jpeg|gif|webp)$/i, '');
+        
+        // Try to find by cloudinaryPublicId pattern first (more reliable)
         const mediaByPublicId = await Media.findOne({
           cloudinaryPublicId: new RegExp(`${filenameWithoutExt}$`),
         }).lean();
         if (mediaByPublicId && (mediaByPublicId as any).url) {
           return (mediaByPublicId as any).url;
+        }
+        
+        // Fallback: Try to find media by filename
+        const media = await Media.findOne({ filename: featuredImage }).lean();
+        if (media && (media as any).url) {
+          return (media as any).url;
         }
       }
       return featuredImage;
