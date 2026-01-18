@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "lint": "eslint src/**/*.ts",
     "seed:categories": "tsx src/scripts/seedCategories.ts",
-    "create-admin": "tsx src/scripts/createAdminUser.ts"
+    "create-admin": "tsx src/scripts/createAdminUser.ts",
+    "set-admin": "tsx src/scripts/setAdmin.ts"
   },
   "keywords": [],
   "author": "",
