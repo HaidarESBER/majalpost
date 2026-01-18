@@ -197,9 +197,10 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
     const { id } = req.params;
 
     // Validate ObjectId
-    validateObjectId(id, 'Application ID');
+    const appId = Array.isArray(id) ? id[0] : id;
+    validateObjectId(appId, 'Application ID');
 
-    const application = await ContributorApplication.findById(id)
+    const application = await ContributorApplication.findById(appId)
       .populate('user', 'name email profilePicture')
       .populate('reviewedBy', 'name email')
       .lean();
@@ -244,13 +245,14 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
     const { status, reviewNotes } = req.body;
 
     // Validate ObjectId
-    validateObjectId(id, 'Application ID');
+    const appId = Array.isArray(id) ? id[0] : id;
+    validateObjectId(appId, 'Application ID');
 
     if (!status || (status !== ApplicationStatus.APPROVED && status !== ApplicationStatus.REJECTED)) {
       throw new ApiError('Status must be approved or rejected', HttpStatus.BAD_REQUEST);
     }
 
-    const application = await ContributorApplication.findById(id);
+    const application = await ContributorApplication.findById(appId);
 
     if (!application) {
       throw new ApiError('Application not found', HttpStatus.NOT_FOUND);

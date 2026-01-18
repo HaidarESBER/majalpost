@@ -168,9 +168,10 @@ router.get('/:id/file', async (req: AuthRequest, res: Response): Promise<void> =
     const { id } = req.params;
 
     // Validate ObjectId
-    validateObjectId(id, 'Media ID');
+    const mediaId = Array.isArray(id) ? id[0] : id;
+    validateObjectId(mediaId, 'Media ID');
 
-    const media = await Media.findById(id);
+    const media = await Media.findById(mediaId);
 
     if (!media) {
       throw new ApiError('Media not found', HttpStatus.NOT_FOUND);
@@ -208,9 +209,10 @@ router.get('/:id/thumbnail', async (req: AuthRequest, res: Response): Promise<vo
     const { id } = req.params;
 
     // Validate ObjectId
-    validateObjectId(id, 'Media ID');
+    const mediaId = Array.isArray(id) ? id[0] : id;
+    validateObjectId(mediaId, 'Media ID');
 
-    const media = await Media.findById(id);
+    const media = await Media.findById(mediaId);
 
     if (!media) {
       throw new ApiError('Media not found', HttpStatus.NOT_FOUND);
@@ -264,9 +266,10 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
     const { id } = req.params;
 
     // Validate ObjectId
-    validateObjectId(id, 'Media ID');
+    const mediaId = Array.isArray(id) ? id[0] : id;
+    validateObjectId(mediaId, 'Media ID');
 
-    const media = await Media.findById(id).lean();
+    const media = await Media.findById(mediaId).lean();
 
     if (!media) {
       throw new ApiError('Media not found', HttpStatus.NOT_FOUND);
@@ -277,8 +280,8 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
       thumbnailUrl: string;
     };
 
-    mediaObject.fileUrl = `/api/media/${id}/file`;
-    mediaObject.thumbnailUrl = `/api/media/${id}/thumbnail`;
+    mediaObject.fileUrl = `/api/media/${mediaId}/file`;
+    mediaObject.thumbnailUrl = `/api/media/${mediaId}/thumbnail`;
 
     const response: ApiResponse<typeof mediaObject> = {
       success: true,

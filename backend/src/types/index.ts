@@ -1,5 +1,6 @@
 /**
  * Re-export shared API types
+ * Note: Using relative path from backend/src/types to shared/types
  */
 export type { ApiResponse, PaginatedResponse, ApiErrorDetails } from '../../../shared/types/index.js';
 

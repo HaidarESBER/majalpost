@@ -125,9 +125,10 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
     }
 
     // Validate ObjectId
-    validateObjectId(id, 'Comment ID');
+    const commentId = Array.isArray(id) ? id[0] : id;
+    validateObjectId(commentId, 'Comment ID');
 
-    const comment = await Comment.findById(id);
+    const comment = await Comment.findById(commentId);
 
     if (!comment) {
       throw new ApiError('Comment not found', HttpStatus.NOT_FOUND);
@@ -173,9 +174,10 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response): Pro
     }
 
     // Validate ObjectId
-    validateObjectId(id, 'Comment ID');
+    const commentId = Array.isArray(id) ? id[0] : id;
+    validateObjectId(commentId, 'Comment ID');
 
-    const comment = await Comment.findById(id);
+    const comment = await Comment.findById(commentId);
 
     if (!comment) {
       throw new ApiError('Comment not found', HttpStatus.NOT_FOUND);
@@ -187,7 +189,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response): Pro
       throw new ApiError('You can only delete your own comments', HttpStatus.FORBIDDEN);
     }
 
-    await Comment.deleteOne({ _id: id });
+    await Comment.deleteOne({ _id: commentId });
 
     res.status(HttpStatus.NO_CONTENT).send();
   } catch (error) {

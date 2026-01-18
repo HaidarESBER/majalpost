@@ -3,6 +3,7 @@ import { User } from '../models/User.js';
 import { ApiResponse } from '../types/index.js';
 import { ApiError, HttpStatus } from '../types/index.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
+import { validateObjectId } from '../utils/validation.js';
 
 const router = Router();
 
@@ -175,9 +176,10 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
     const { name, email, role, password } = req.body;
 
     // Validate ObjectId
-    validateObjectId(id, 'User ID');
+    const userId = Array.isArray(id) ? id[0] : id;
+    validateObjectId(userId, 'User ID');
 
-    const user = await User.findById(id);
+    const user = await User.findById(userId);
 
     if (!user) {
       throw new ApiError('User not found', HttpStatus.NOT_FOUND);
@@ -192,7 +194,7 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
       const trimmedEmail = email.trim().toLowerCase();
       // Check if email is already taken by another user
       const existingUser = await User.findOne({ email: trimmedEmail });
-      if (existingUser && existingUser._id.toString() !== id) {
+      if (existingUser && existingUser._id.toString() !== userId) {
         throw new ApiError('Email already in use', HttpStatus.CONFLICT);
       }
       user.email = trimmedEmail;
