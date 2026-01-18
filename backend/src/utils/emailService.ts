@@ -34,11 +34,26 @@ async function sendEmail(to: string, subject: string, html: string, text?: strin
   try {
     // Skip sending emails in test environment or if SMTP is not configured
     if (env.NODE_ENV === 'test' || !env.SMTP_USER || !env.SMTP_PASS) {
-      console.log('Email not sent (test mode or SMTP not configured):', { to, subject, hasUser: !!env.SMTP_USER, hasPass: !!env.SMTP_PASS });
+      console.log('Email not sent (test mode or SMTP not configured):', { 
+        to, 
+        subject, 
+        nodeEnv: env.NODE_ENV,
+        hasUser: !!env.SMTP_USER, 
+        hasPass: !!env.SMTP_PASS,
+        smtpHost: env.SMTP_HOST,
+        smtpPort: env.SMTP_PORT
+      });
       return;
     }
 
-    console.log('Sending email...', { to, subject, from: env.SMTP_FROM_EMAIL });
+    console.log('Sending email...', { 
+      to, 
+      subject, 
+      from: env.SMTP_FROM_EMAIL,
+      smtpHost: env.SMTP_HOST,
+      smtpPort: env.SMTP_PORT,
+      smtpUser: env.SMTP_USER.substring(0, 3) + '...' // Log partial email for debugging
+    });
     
     const info = await transporter.sendMail({
       from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
@@ -51,6 +66,10 @@ async function sendEmail(to: string, subject: string, html: string, text?: strin
     console.log('Email sent successfully:', { messageId: info.messageId, to, subject });
   } catch (error) {
     console.error('Error sending email:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     // Don't throw error to prevent breaking the main flow
     // Log it instead
   }
