@@ -172,3 +172,12 @@ This repository contains a number of task-specific debugging and deployment docu
 - `desc.md` — the original product brief (site structure, categories, and visual identity).
 
 Other `*.md` files in the root (`CORS_FIX*.md`, `DEBUG_405_ERROR.md`, `EMAIL_*.md`, `ISSUES_FOUND*.md`, `FIXES_APPLIED_SUMMARY.md`, `SYSTEMATIC_DEBUG.md`, `GITHUB_*.md`) are historical debugging/troubleshooting logs.
+
+
+---
+
+## 👤 Author
+
+**Built by [Haidar Esber](https://haidaresber.github.io)** — Lebanese software & web developer based in France.
+
+[Portfolio](https://haidaresber.github.io) · [GitHub](https://github.com/HaidarESBER) · [LinkedIn](https://www.linkedin.com/in/haidaresber)
